@@ -9,12 +9,16 @@ import torch
 import torch.distributed as dist
 import torch.nn as nn
 from mmcv.runner import auto_fp16
-
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+from matplotlib.colors import Normalize
 
 class BaseSegmentor(nn.Module):
     """Base class for segmentors."""
 
     __metaclass__ = ABCMeta
+    with open("data/FoodSeg103/category_id.txt", "r") as f:
+        class_names = {int(line.split()[0]): " ".join(line.split()[1:]) for line in f.readlines()}
 
     def __init__(self):
         super(BaseSegmentor, self).__init__()
@@ -208,6 +212,7 @@ class BaseSegmentor(nn.Module):
     def show_result(self,
                     img,
                     result,
+                    gt,
                     palette=None,
                     win_name='',
                     show=False,
@@ -236,6 +241,7 @@ class BaseSegmentor(nn.Module):
         img = mmcv.imread(img)
         img = img.copy()
         seg = result[0]
+        gt = gt[0][0][0].numpy()
         if palette is None:
             if self.PALETTE is None:
                 palette = np.random.randint(
@@ -247,19 +253,40 @@ class BaseSegmentor(nn.Module):
         assert palette.shape[1] == 3
         assert len(palette.shape) == 2
         color_seg = np.zeros((seg.shape[0], seg.shape[1], 3), dtype=np.uint8)
+        legends_seg = []
         for label, color in enumerate(palette):
             color_seg[seg == label, :] = color
-        # convert to BGR
-        color_seg = color_seg[..., ::-1]
+            if np.sum(seg == label) > 0:
+                legends_seg.append(mpatches.Patch(color=color/255, label=self.class_names[label]))
 
-        img = img * 0.5 + color_seg * 0.5
+        color_gt = np.zeros((gt.shape[0], gt.shape[1], 3), dtype=np.uint8)
+        legends_gt = []
+        for label, color in enumerate(palette):
+            color_gt[gt == label, :] = color
+            if np.sum(gt == label) > 0:
+                legends_gt.append(mpatches.Patch(color=color/255, label=self.class_names[label]))
+
+        # convert to BGR
+        # color_seg = color_seg[..., ::-1]
+
+        # img = img * 0.5 + color_seg * 0.5
         img = img.astype(np.uint8)
+        color_seg = color_seg.astype(np.uint8)
         # if out_file specified, do not show image in window
         if out_file is not None:
             show = False
 
         if show:
-            mmcv.imshow(img, win_name, wait_time)
+            plt.subplot(131)
+            plt.imshow(img[..., ::-1])
+            plt.subplot(132)
+            plt.imshow(color_seg, norm=Normalize(0, 255))
+            plt.legend(handles=legends_seg)
+            plt.subplot(133)
+            plt.imshow(color_gt, norm=Normalize(0, 255))
+            plt.legend(handles=legends_gt)
+            plt.show()
+            # mmcv.imshow(img, win_name, wait_time)
         if out_file is not None:
             mmcv.imwrite(img, out_file)
 

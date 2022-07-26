@@ -109,7 +109,7 @@ test_pipeline = [
                 std=[58.395, 57.12, 57.375],
                 to_rgb=True),
             dict(type='ImageToTensor', keys=['img']),
-            dict(type='Collect', keys=['img'])
+            dict(type='Collect', keys=['img']),
         ])
 ]
 data = dict(
@@ -167,6 +167,7 @@ data = dict(
         ann_dir='ann_dir/test',
         pipeline=[
             dict(type='LoadImageFromFile'),
+            dict(type='LoadAnnotations'),
             dict(
                 type='MultiScaleFlipAug',
                 img_scale=(2049, 1025),
@@ -179,8 +180,8 @@ data = dict(
                         mean=[123.675, 116.28, 103.53],
                         std=[58.395, 57.12, 57.375],
                         to_rgb=True),
-                    dict(type='ImageToTensor', keys=['img']),
-                    dict(type='Collect', keys=['img'])
+                    dict(type='ImageToTensor', keys=['img', 'gt_semantic_seg']),
+                    dict(type='Collect', keys=['img', 'gt_semantic_seg']),
                 ])
         ]))
 log_config = dict(

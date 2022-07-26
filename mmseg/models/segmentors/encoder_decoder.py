@@ -261,9 +261,13 @@ class EncoderDecoder(BaseSegmentor):
 
         return output
 
-    def simple_test(self, img, img_meta, rescale=True):
+    def simple_test(self, img, img_meta, gt_semantic_seg, rescale=True):
         """Simple test with single image."""
         seg_logit = self.inference(img, img_meta, rescale)
+        gt_classes = torch.unique(gt_semantic_seg[0]).long()
+        fill_mask = torch.ones_like(seg_logit).bool()
+        fill_mask[:, gt_classes] = False
+        seg_logit.masked_fill_(fill_mask, -100)
         seg_pred = seg_logit.argmax(dim=1)
         if torch.onnx.is_in_onnx_export():
             # our inference backend only support 4D output

@@ -80,6 +80,7 @@ def single_gpu_test(model,
                 model.module.show_result(
                     img_show,
                     result,
+                    data["gt_semantic_seg"],
                     palette=dataset.PALETTE,
                     show=show,
                     out_file=out_file)
